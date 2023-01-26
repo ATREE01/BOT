@@ -13,8 +13,6 @@ from bs4 import BeautifulSoup
 
 import os 
 
-
-
 class Download_Img(commands.Cog, description="Use to download photo from website."):
     def __init__(self, bot):
         self.bot = bot
@@ -57,4 +55,3 @@ class Download_Img(commands.Cog, description="Use to download photo from website
    
 async def setup(bot):
     await bot.add_cog(Download_Img(bot))
-        

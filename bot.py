@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-import os 
 
+import os 
 
 class Bot(commands.Bot):
     def __init__(self):
