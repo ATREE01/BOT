@@ -4,11 +4,12 @@ from discord import app_commands
 
 
 import os 
+import json
 
 class Bot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="$",intents=discord.Intents().all())
-        
+        super().__init__(command_prefix="$",intents=discord.Intents().all(),heartbeat_timeout=100)
+    
     async def setup_hook(self):
         for filename in os.listdir("./cogs"):
             if filename.endswith(".py"):
@@ -45,7 +46,6 @@ async def help(interaction: discord.Interaction, command:str=None):
         for cmd in bot.tree.get_commands():
             if cmd.name not in in_cog:
                 emb.add_field(name=f'`/{cmd.name}`', value=f"Description: {cmd.description}",inline=False)
-                
     else :
         flag = False
         for cmd in bot.tree.get_commands():
@@ -62,6 +62,7 @@ async def help(interaction: discord.Interaction, command:str=None):
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message(f'Hello <@{interaction.user.id}> !')
 
-token = 'MTA2NjcwMzM1NTI5ODE5MzQzOQ.GZBg8d.RrAbYeUbnSLuTIEZyQhDL1hHXHlXnTlGpIhv-Y'
-bot.run(token)
+with open('token.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
+bot.run(data['token'])
         
