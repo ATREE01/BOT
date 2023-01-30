@@ -72,14 +72,14 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
             self.music_queue.pop(0)
             if len(self.music_queue) == 0:
                 self.is_playing = False
+                print("it's ended")
                 await asyncio.sleep(90)
                 emb = discord.Embed(title='Idle for too long!', color=discord.Color.red())
-                if self.is_playing == False:
-                    self.is_playing = False
-                    self.is_paused = False
-                    self.voice_channel = None
-                    await self.voice_channel.disconnect()
-                    await text_channel.send(embed = emb)
+                await self.voice_channel.disconnect()
+                await text_channel.send(embed = emb)
+                self.is_playing = False
+                self.is_paused = False
+                self.voice_channel = None
                 return
             self.now_playing = self.search_YT()
             self.is_playing = True
