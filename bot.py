@@ -65,4 +65,3 @@ async def hello(interaction: discord.Interaction):
 with open('token.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
 bot.run(data['token'])
-        

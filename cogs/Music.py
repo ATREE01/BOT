@@ -31,11 +31,10 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         
         self.voice_channel = None
             
-    def search_YT(self):
+    def search_YT(self, item):
         try:
             with YoutubeDL(self.YDL_OPTIONS) as ydl:
-                item = self.music_queue[0]
-                if 'https' in item:
+                if 'https' and 'youtube' in item:
                     info = ydl.extract_info(item,download = False)   
                     song = {
                         'title': info['title'],
@@ -47,16 +46,19 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                         'thumbnail': info['thumbnail'],
                     }
                 else :
-                    info = ydl.extract_info(f'ytsearch:{item}' ,download = False)['entries'][0]
-                    song = {
-                        'title': info['title'],
-                        'duration': info['duration'],
-                        'channel_name': info['channel'],
-                        'channel_url': info['channel_url'],
-                        'url': info['webpage_url'],
-                        'music_url': info['formats'][0]['url'],
-                        'thumbnail': info['thumbnail'],
-                    }
+                    try:
+                        info = ydl.extract_info(f'ytsearch:{item}' ,download = False)['entries'][0]
+                        song = {
+                            'title': info['title'],
+                            'duration': info['duration'],
+                            'channel_name': info['channel'],
+                            'channel_url': info['channel_url'],
+                            'url': info['webpage_url'],
+                            'music_url': info['formats'][0]['url'],
+                            'thumbnail': info['thumbnail'],
+                        }
+                    except:
+                        return False
             return song
         except Exception:
             return False
@@ -72,16 +74,18 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
             self.music_queue.pop(0)
             if len(self.music_queue) == 0:
                 self.is_playing = False
-                print("it's ended")
+                
                 await asyncio.sleep(90)
-                emb = discord.Embed(title='Idle for too long!', color=discord.Color.red())
-                await self.voice_channel.disconnect()
-                await text_channel.send(embed = emb)
-                self.is_playing = False
-                self.is_paused = False
-                self.voice_channel = None
+                if self.is_playing == False:
+                    emb = discord.Embed(title='Idle for too long!', color=discord.Color.red())
+                    await self.voice_channel.disconnect()
+                    await text_channel.send(embed = emb)
+                    self.is_playing = False
+                    self.is_paused = False
+                    self.voice_channel = None
+                    
                 return
-            self.now_playing = self.search_YT()
+            self.now_playing = self.search_YT(self.music_queue()[0])
             self.is_playing = True
             await text_channel.send(embed=(self.now_playing_info()))
             self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
@@ -90,14 +94,14 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
     def now_playing_info(self):
         emb = discord.Embed(title='Now playing: 🎵', color=discord.Color.blue())
         emb.set_thumbnail(url=self.now_playing['thumbnail'])
-        emb.add_field(name='Title:', value=f"[{self.now_playing['title']}]({self.now_playing['url']})")
+        emb.add_field(name='Title:', value=f"[{self.now_playing['title']}]({self.now_playing['url']})", inline=False)
         emb.add_field(name='Channel:', value=f"[{self.now_playing['channel_name']}]({self.now_playing['channel_url']})")
         emb.add_field(name='Duration:', value=datetime.timedelta(seconds = self.now_playing['duration']))
         return emb
         
     async def play_music(self,text_channel, voice_channel):
         if len(self.music_queue) > 0 :
-            self.now_playing = self.search_YT()
+            self.now_playing = self.search_YT(self.music_queue[0])
             if self.now_playing == False:
                 await text_channel.send("Can not play this track skipping to next track.")
                 self.music_queue.pop(0)
@@ -182,8 +186,11 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         else:
             emb = discord.Embed(title=f'Music queue Total : {len(self.music_queue)}', color=discord.Color.blue())
             for i in range((page-1)*10, min((page)*10, len(self.music_queue))):
-                song = YouTube(self.music_queue[i])
-                emb.add_field(name=f"({i+1}) {song.title}" + (' - Looping' if self.is_loop and i != page*10 else ''), value='', inline = False)
+                try:
+                    song = self.search_YT(self.music_queue[i])['title']
+                    emb.add_field(name=f"({i+1}) {song}" + (' - Looping' if self.is_loop and i != page*10 else ''), value='', inline = False)
+                except:
+                    emb.add_field(name=f"({i+1}) Invalid" + (' - Looping' if self.is_loop and i != page*10 else ''), value='', inline = False)
             emb.add_field(name=f'Pages: {page}/{len(self.music_queue)//10 + 1}', value='', inline=False)
             await interaction.followup.send(embed=emb)
     

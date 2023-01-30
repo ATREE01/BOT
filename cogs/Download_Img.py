@@ -17,14 +17,14 @@ class Download_Img(commands.Cog, description="Use to download photo from website
     def __init__(self, bot):
         self.bot = bot
         
-    @app_commands.command(name='download_img_insta',description="download img from instagram")
-    async def download_img_insta(self, interaction: discord.Interaction, url:str):
+    @app_commands.command(name='download_img',description="download img from instagram or twitter")
+    async def download_img(self, interaction: discord.Interaction, url:str):
         """use for download img from instagram"""
         await interaction.response.defer()
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        driver = webdriver.Chrome('chromedriver',options = chrome_options)
         if "instagram" in url:
-            chrome_options = Options()
-            chrome_options.add_argument("--headless")
-            driver = webdriver.Chrome('chromedriver',options = chrome_options)
             driver.get(url)
             time.sleep(3)
             img_urls = set()
@@ -50,8 +50,22 @@ class Download_Img(commands.Cog, description="Use to download photo from website
                         output.write(response.content)  
                         await interaction.followup.send(file = discord.File(f"output{index}.png"))
                     os.remove(f"output{index}.png")
+        elif 'twitter' in url:
+            driver.get(url)
+            time.sleep(1)
+            soup = BeautifulSoup(driver.page_source, "lxml")
+            article = soup.find('article')
+            imgs = article.find_all('img', alt='圖片')
+            for index, img in enumerate (imgs):
+                img_url = img.get('src')
+                response = requests.get(img_url)
+                if response.status_code:
+                    with open(f"output{index}.png",'wb') as output:
+                        output.write(response.content)  
+                        await interaction.followup.send(file = discord.File(f"output{index}.png")) 
+                    os.remove(f"output{index}.png")
         else:
             await interaction.response.send_message("Incorrect URL!")
-   
+            
 async def setup(bot):
     await bot.add_cog(Download_Img(bot))
