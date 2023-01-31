@@ -3,14 +3,15 @@ from discord.ext import commands
 from discord import app_commands
 
 from youtube_dl import YoutubeDL
+import yt_dlp
 from pytube import Playlist
-from pytube import YouTube
 
 import asyncio
-from asyncore import loop
 
 import random
 import datetime
+
+import os
 class Music(commands.Cog, description='Commands for playing music from youtube.'):
     def __init__(self , bot):
         self.bot = bot
@@ -26,6 +27,11 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         self.YDL_OPTIONS = {'format': 'bestaudio',
                             'noplaylist': 'True',
                             'quiet': True,
+                            'postprocessors': [{  # Extract audio using ffmpeg
+                                'key': 'FFmpegExtractAudio',
+                                'preferredcodec': 'm4a',
+                            }],
+                            'outtmpl': './Youtube/%(title)s.%(ext)s',
                             }
         self.FFMEPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
         
@@ -85,7 +91,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                     self.voice_channel = None
                     
                 return
-            self.now_playing = self.search_YT(self.music_queue()[0])
+            self.now_playing = self.search_YT(self.music_queue[0])
             self.is_playing = True
             await text_channel.send(embed=(self.now_playing_info()))
             self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
@@ -212,7 +218,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
 
     @app_commands.command(name='clear',description='Clear the songs in the queue.')
     async def clear(self,interaction:discord.Interaction):
-        self.music_queue = []
+        self.music_queue = self.music_queue[:1]
         await interaction.response.send_message("Music queue cleared.")
                
     @app_commands.command(name='remove',description='Remove certain music in the queue.')
@@ -232,6 +238,22 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         self.music_queue.clear()
         self.voice_channel = None
   
-
+    @app_commands.command(name="download_music", description='Download song or playlisg from youtube.\n `Notice:` A playlist that\'s too long is not recommend.')
+    async def download(self, interaction:discord.Interaction, url: str):
+        await interaction.response.defer()
+        if 'https' and 'youtube' in url: 
+            try:
+                with yt_dlp.YoutubeDL(self.YDL_OPTIONS) as ydl:
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, ydl.download, url)
+                for music in os.listdir('./Youtube'):
+                    await interaction.followup.send(file=discord.File(f'./Youtube/{music}'))
+                    os.remove(f'./Youtube/{music}')
+                await interaction.followup.send("Complete downloading.")
+            except:
+                await interaction.followup.send('Download failed')
+        else :
+            await interaction.response.send_message("Please enter a correct URL!")
+    
 async def setup(bot):
     await bot.add_cog(Music(bot))
