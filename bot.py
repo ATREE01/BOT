@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-
 import os 
 import json
 
@@ -62,6 +61,6 @@ async def help(interaction: discord.Interaction, command:str=None):
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message(f'Hello <@{interaction.user.id}> !')
 
-with open('token.json', 'r', encoding='utf-8') as file:
+with open('./token.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
 bot.run(data['token'])
