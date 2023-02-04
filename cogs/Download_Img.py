@@ -19,7 +19,6 @@ class Download_Img(commands.Cog, description="Use to download photo from website
         
     @app_commands.command(name='download_img',description="download img from instagram or twitter")
     async def download_img(self, interaction: discord.Interaction, url:str):
-        """use for download img from instagram"""
         await interaction.response.defer()
         chrome_options = Options()
         chrome_options.add_argument("--headless")
