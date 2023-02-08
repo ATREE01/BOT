@@ -14,7 +14,6 @@ class chat_bot(commands.Cog, description='This is a chat bot.'):
     def __init__(self, bot):
         self.bot = bot
 
-        
     def chatgpt_response(self, prompt):
         response = openai.Completion.create(
             model="text-davinci-003",
@@ -39,13 +38,16 @@ class chat_bot(commands.Cog, description='This is a chat bot.'):
     @app_commands.command(name='gen_img', description='Create an original image given a text prompt')        
     async def gen_img(self, interaction: discord.Interaction, prompt: str=None):
         await interaction.response.defer()
-        response = openai.Image.create(
-            prompt = prompt,
-            n = 1,
-            size = "1024x1024"
-        )
-        img_url = response['data'][0]['url']
-        await interaction.followup.send(f'{img_url}')
+        try:
+            response = openai.Image.create(
+                prompt = prompt,
+                n = 1,
+                size = "1024x1024"
+            )
+            img_url = response['data'][0]['url']
+            await interaction.followup.send(f'{img_url}')
+        except Exception as e:
+            await interaction.followup.send(e)
     
 with open('./cogs/key.json', 'r', encoding='utf-8') as file:
     data = json.load(file)

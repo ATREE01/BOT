@@ -2,8 +2,11 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-import os 
+import os, random
 import json
+
+import time
+from colorama import Back, Fore, Style
 
 class Bot(commands.Bot):
     def __init__(self):
@@ -15,11 +18,22 @@ class Bot(commands.Bot):
                 await bot.load_extension(f"cogs.{filename[:-3]}")
 
     async def on_ready(self):
-        print('目前登入身份：', bot.user)
+        await bot.change_presence(activity=discord.Game(name="戀上換裝娃娃"))
+        prefx = (Back.BLACK + Fore.GREEN + time.strftime("%H:%M:%S", time.localtime()) + Back.RESET + Fore.WHITE + Style.BRIGHT)
+        print(prefx + ' 目前登入身份：' + Fore.BLUE + self.user.name)
         sycned = await bot.tree.sync()
-        print("Slash CMDS Sycned " + str(len(sycned)) + " Commands")
+        print(prefx + " Slash CMDS Sycned " + Fore.YELLOW + str(len(sycned)) + " Commands")
+        Fore.BLACK
         
 bot = Bot()
+@bot.event
+async def on_message(message):
+    if '@345922184017084427' in message.content:
+        path = random.choice(os.listdir('./Pixiv_imgs'))
+        await message.channel.send(file=discord.File(f'./Pixiv_imgs/{path}'))
+    
+    
+    
 
 @bot.tree.command(name='help',description = "Shows help for ATREE_BOT's slash commands.")
 @app_commands.describe(command = "The command to get help for")

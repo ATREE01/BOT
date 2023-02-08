@@ -25,7 +25,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         self.music_queue = []
 
         self.YDL_OPTIONS = {'format': 'bestaudio',
-                            'noplaylist': 'True',
+                            'noplaylist': True,
                             'quiet': True,
                             'postprocessors': [{  # Extract audio using ffmpeg
                                 'key': 'FFmpegExtractAudio',
