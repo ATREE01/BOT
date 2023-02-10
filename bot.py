@@ -23,17 +23,8 @@ class Bot(commands.Bot):
         print(prefx + ' 目前登入身份：' + Fore.BLUE + self.user.name)
         sycned = await bot.tree.sync()
         print(prefx + " Slash CMDS Sycned " + Fore.YELLOW + str(len(sycned)) + " Commands")
-        Fore.BLACK
         
 bot = Bot()
-@bot.event
-async def on_message(message):
-    if '@345922184017084427' in message.content:
-        path = random.choice(os.listdir('./Pixiv_imgs'))
-        await message.channel.send(file=discord.File(f'./Pixiv_imgs/{path}'))
-    
-    
-    
 
 @bot.tree.command(name='help',description = "Shows help for ATREE_BOT's slash commands.")
 @app_commands.describe(command = "The command to get help for")
@@ -71,9 +62,6 @@ async def help(interaction: discord.Interaction, command:str=None):
     
     await interaction.response.send_message(embed = emb)
                
-@bot.tree.command(name='hello', description='Say hello to you.')
-async def hello(interaction: discord.Interaction):
-    await interaction.response.send_message(f'Hello <@{interaction.user.id}> !')
 
 with open('./token.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
