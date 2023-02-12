@@ -8,7 +8,7 @@ class others(commands.Cog, description='Other commands'):
     def __init__(self, bot):
         self.bot = bot
         
-        self.key_word =["@345922184017084427", "施奕安", "詩意安", "施亦安", "施易安"]
+        self.key_word =["@345922184017084427", "施奕安", "詩意安", "施亦安", "施易安", "失意安"]
         
     @commands.Cog.listener()
     async def on_message(self, message):

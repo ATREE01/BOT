@@ -61,7 +61,7 @@ async def help(interaction: discord.Interaction, command:str=None):
             emb.add_field(name='The command doesn\'t exist. Plese check the name of the command.',value='',inline=False)
     
     await interaction.response.send_message(embed = emb)
-               
+
 
 with open('./token.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
