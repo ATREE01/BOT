@@ -13,25 +13,28 @@ class chat_bot(commands.Cog, description='This is a chat bot.'):
         self.bot = bot
 
     def chatgpt_response(self, prompt):
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompt,
-            temperature=1,
-            max_tokens=500,
-        )
-        response_dict = response.get("choices")
-        if response_dict and len(response_dict) > 0:
-            prompt_response = response_dict[0]['text']
-        return prompt_response
+        try:
+            response = openai.Completion.create(
+                model="text-davinci-003",
+                prompt=prompt,
+                temperature=1,
+                max_tokens=500,
+            )
+            response_dict = response.get("choices")
+            if response_dict and len(response_dict) > 0:
+                prompt_response = response_dict[0]['text']
+            return prompt_response
+        except:
+            return False
     
     @app_commands.command(name='chat', description="Talk to chat_bot.")
     async def chat(self, interaction: discord.Interaction,prompt: str=None):
-        await interaction.response.defer()
-        try:  
-            bot_response = self.chatgpt_response(prompt)
+        await interaction.response.defer() 
+        bot_response = self.chatgpt_response(prompt)
+        if bot_response != False:
             await interaction.followup.send(f'{interaction.user}:\n{prompt}\nマリン:\n{bot_response.strip()}')
-        except:
-            await interaction.response.send_message("Please try another sentence.")
+        else :
+            await interaction.followup.send("Please try another prompt.")
     
     @app_commands.command(name='gen_img', description='Create an original image given a text prompt')        
     async def gen_img(self, interaction: discord.Interaction, prompt: str=None):
