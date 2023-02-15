@@ -22,8 +22,8 @@ class Bot(commands.Bot):
         prefx = (Back.BLACK + Fore.GREEN + time.strftime("%H:%M:%S", time.localtime()) + Back.RESET + Fore.WHITE + Style.BRIGHT)
         print(prefx + ' 目前登入身份：' + Fore.BLUE + self.user.name)
         sycned = await bot.tree.sync()
-        print(prefx + " Slash CMDS Sycned " + Fore.YELLOW + str(len(sycned)) + " Commands")
-        
+        print(prefx + " Slash CMDS Sycned " + Fore.YELLOW + str(len(sycned)) + " Commands" + Fore.RESET)
+
 bot = Bot()
 
 @bot.tree.command(name='help',description = "Shows help for ATREE_BOT's slash commands.")
