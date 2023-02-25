@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-from youtube_dl import YoutubeDL
 import yt_dlp
+
 from pytube import Playlist
 
 import asyncio
@@ -19,10 +19,13 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         self.is_playing = False
         self.is_paused = False
         self.is_loop = False
+        self.skiped = False
         
         self.now_playing = None
+        self.now_playing_info_msg = None
         
         self.music_queue = []
+        
 
         self.YDL_OPTIONS = {'format': 'bestaudio',
                             'noplaylist': True,
@@ -39,7 +42,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
             
     def search_YT(self, item):
         try:
-            with YoutubeDL(self.YDL_OPTIONS) as ydl:
+            with yt_dlp.YoutubeDL(self.YDL_OPTIONS) as ydl:
                 if 'https' and 'youtube' in item:
                     info = ydl.extract_info(item,download = False)   
                     song = {
@@ -48,7 +51,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                         'channel_name': info['channel'],
                         'channel_url': info['channel_url'],
                         'url': info['webpage_url'],
-                        'music_url': info['formats'][0]['url'],
+                        'music_url': info['formats'][3]['url'],
                         'thumbnail': info['thumbnail'],
                     }
                 else :
@@ -60,7 +63,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                             'channel_name': info['channel'],
                             'channel_url': info['channel_url'],
                             'url': info['webpage_url'],
-                            'music_url': info['formats'][0]['url'],
+                            'music_url': info['formats'][3]['url'],
                             'thumbnail': info['thumbnail'],
                         }
                     except:
@@ -74,12 +77,18 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         future = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 
     async def play_next(self, text_channel):
+        if self.now_playing_info_msg != None:
+            await self.now_playing_info_msg.delete()
+        if self.skiped == True:
+            self.skiped = False
+            return
         if self.is_loop == True:
             self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
         else:
             self.music_queue.pop(0)
             if len(self.music_queue) == 0:
                 self.is_playing = False
+                self.now_playing_info_msg = None
                 
                 await asyncio.sleep(90)
                 if self.is_playing == False:
@@ -93,7 +102,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                 return
             self.now_playing = self.search_YT(self.music_queue[0])
             self.is_playing = True
-            await text_channel.send(embed=(self.now_playing_info()))
+            self.now_playing_info_msg = await text_channel.send(embed=(self.now_playing_info()))
             self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
             
             
@@ -118,7 +127,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                 if self.voice_channel == None:
                     await text_channel.send("Could not connect to voice channel.")
             await self.voice_channel.move_to(voice_channel)
-            await text_channel.send(embed=self.now_playing_info())
+            self.now_playing_info_msg = await text_channel.send(embed=self.now_playing_info())
             self.is_playing = True
             self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
         else :
@@ -176,6 +185,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
     
     @app_commands.command(name='skip', description='Skips the currently playing song.')
     async def skip(self,interaction: discord.Interaction):
+        self.skiped = True
         if self.voice_channel != None and self.voice_channel:
             self.voice_channel.stop()
             self.music_queue.pop(0)
