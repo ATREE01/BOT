@@ -26,7 +26,6 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         
         self.music_queue = []
         
-
         self.YDL_OPTIONS = {'format': 'bestaudio',
                             'noplaylist': True,
                             'quiet': True,
