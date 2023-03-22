@@ -10,6 +10,7 @@ import time
 
 import requests
 
+import uuid
 import os 
 
 class Download_Img(commands.Cog, description="Use to download photo from website."):
@@ -26,44 +27,50 @@ class Download_Img(commands.Cog, description="Use to download photo from website
             if "instagram" in url:
                 driver.get(url)
                 time.sleep(3)
-                img_urls = set()
+                img_urls = []
+                post = driver.find_element(By.CLASS_NAME, "_aatk._aatn")
                 try:
                     while True:
                         button = driver.find_element(By.CLASS_NAME, "_afxw")
-                        datas = driver.find_elements(By.CLASS_NAME, "x5yr21d.xu96u03.x10l6tqk.x13vifvy.x87ps6o.xh8yej3")
+                        datas = post.find_elements(By.CLASS_NAME, "x5yr21d.xu96u03.x10l6tqk.x13vifvy.x87ps6o.xh8yej3")
                         for data in datas:
-                            img_urls.add(data.get_attribute('src'))
+                            img_url = data.get_attribute('src')
+                            if img_url not in img_urls:
+                                img_urls.append(img_url)
                         button.click()
                         try:
                             button = driver.find_element(By.CLASS_NAME, "_afxw")
                         except: 
                             break
                 except:
-                    data = driver.find_element(By.CLASS_NAME, "x5yr21d.xu96u03.x10l6tqk.x13vifvy.x87ps6o.xh8yej3")
-                    img_urls.add(data.get_attribute('src'))
+                    data = post.find_element(By.CLASS_NAME, "x5yr21d.xu96u03.x10l6tqk.x13vifvy.x87ps6o.xh8yej3")
+                    img_urls.append(data.get_attribute('src'))
                     
                 for index, url in enumerate (img_urls):
                     response = requests.get(url)
                     if response.status_code:
-                        with open(f"output{index}.png",'wb') as output:
+                        filename = str(uuid.uuid4())
+                        with open(f"{filename}.png",'wb') as output:
                             output.write(response.content)  
-                            await interaction.followup.send(file = discord.File(f"output{index}.png"))
-                        os.remove(f"output{index}.png")
+                            await interaction.followup.send(file = discord.File(f"{filename}.png"))
+                        os.remove(f"{filename}.png")
                         
             elif 'twitter' in url:
                 driver.get(url)
-                time.sleep(1)
+                time.sleep(2)
                 imgs = driver.find_elements(By.XPATH, "//img[@alt='圖片']")
                 for index, img in enumerate (imgs):
                     img_url = img.get_attribute('src')
                     response = requests.get(img_url)
                     if response.status_code:
-                        with open(f"output{index}.png",'wb') as output:
+                        filename = str(uuid.uuid4())
+                        with open(f"{filename}.png",'wb') as output:
                             output.write(response.content)  
-                            await interaction.followup.send(file = discord.File(f"output{index}.png")) 
-                        os.remove(f"output{index}.png")
-        except:
-            await interaction.response.send_message("Incorrect URL!")
-            
+                            await interaction.followup.send(file = discord.File(f"{filename}.png")) 
+                        os.remove(f"{filename}.png")
+        except Exception as e:
+            print(e)
+            await interaction.followup.send("Incorrect URL!")
+
 async def setup(bot):
     await bot.add_cog(Download_Img(bot))
