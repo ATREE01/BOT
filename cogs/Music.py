@@ -76,20 +76,20 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         future = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 
     async def play_next(self, text_channel):
-        if self.now_playing_info_msg != None:
-            await self.now_playing_info_msg.delete()
         if self.skiped == True:
             self.skiped = False
             return
         if self.is_loop == True:
             self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
         else:
+            if self.now_playing_info_msg != None:
+                await self.now_playing_info_msg.delete()
             self.music_queue.pop(0)
             if len(self.music_queue) == 0:
                 self.is_playing = False
                 self.now_playing_info_msg = None
-                
                 await asyncio.sleep(90)
+                
                 if self.is_playing == False:
                     emb = discord.Embed(title='Idle for too long!', color=discord.Color.red())
                     await self.voice_channel.disconnect()
@@ -97,7 +97,6 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                     self.is_playing = False
                     self.is_paused = False
                     self.voice_channel = None
-                    
                 return
             self.now_playing = self.search_YT(self.music_queue[0])
             self.is_playing = True
@@ -124,7 +123,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
             elif self.voice_channel == None or not self.voice_channel.is_connected():
                 self.voice_channel = await voice_channel.connect()
                 if self.voice_channel == None:
-                    await text_channel.send("Could not connect to voice channel.")
+                    await text_channel.send("Could not connect to voice channel.")      
             await self.voice_channel.move_to(voice_channel)
             self.now_playing_info_msg = await text_channel.send(embed=self.now_playing_info())
             self.is_playing = True
