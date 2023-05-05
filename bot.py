@@ -14,7 +14,7 @@ class Bot(commands.Bot):
     
     async def setup_hook(self):
         for filename in os.listdir("./cogs"):
-            if filename.endswith(".py"):
+            if filename.endswith(".py") and filename != "chatgpt.py": #remove chatgpt 
                 await bot.load_extension(f"cogs.{filename[:-3]}")
 
     async def on_ready(self):
