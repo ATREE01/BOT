@@ -15,16 +15,17 @@ import os
 class Music(commands.Cog, description='Commands for playing music from youtube.'):
     def __init__(self , bot):
         self.bot = bot
-    
-        self.is_playing = False
-        self.is_paused = False
-        self.is_loop = False
-        self.skiped = False
+        self.guild_list = []
         
-        self.now_playing = None
-        self.now_playing_info_msg = None
+        self.is_playing = {}
+        self.is_paused = {}
+        self.is_loop = {}
+        self.skiped = {}
         
-        self.music_queue = []
+        self.now_playing = {}
+        self.now_playing_info_msg = {}
+        
+        self.music_queue = {}
         
         self.YDL_OPTIONS = {'format': 'bestaudio',
                             'noplaylist': True,
@@ -37,7 +38,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                             }
         self.FFMEPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
         
-        self.voice_channel = None
+        self.voice_channel = {}
             
     def search_YT(self, item):
         try:
@@ -71,122 +72,145 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         except Exception:
             return False
 
-    def my_after(self, text_channel):
-        coro = self.play_next(text_channel)
+    def my_after(self, text_channel, guild_id):
+        coro = self.play_next(text_channel, guild_id)
         future = asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 
-    async def play_next(self, text_channel):
-        if self.skiped == True:
-            self.skiped = False
+    async def play_next(self, text_channel, guild_id):
+        if self.skiped[guild_id] == True:
+            self.skiped[guild_id] = False
             return
         if self.is_loop == True:
-            self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
+            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
         else:
-            if self.now_playing_info_msg != None:
-                await self.now_playing_info_msg.delete()
-            self.music_queue.pop(0)
-            if len(self.music_queue) == 0:
-                self.is_playing = False
-                self.now_playing_info_msg = None
+            if self.now_playing_info_msg[guild_id] != None:
+                await self.now_playing_info_msg[guild_id].delete()
+            self.music_queue[guild_id].pop(0)
+            if len(self.music_queue[guild_id]) == 0:
+                self.is_playing[guild_id] = False
+                self.now_playing_info_msg[guild_id] = None
                 await asyncio.sleep(90)
                 
                 if self.is_playing == False:
                     emb = discord.Embed(title='Idle for too long!', color=discord.Color.red())
-                    await self.voice_channel.disconnect()
+                    await self.voice_channel[guild_id].disconnect()
                     await text_channel.send(embed = emb)
-                    self.is_playing = False
-                    self.is_paused = False
-                    self.voice_channel = None
+                    self.is_playing[guild_id] = False
+                    self.is_paused[guild_id] = False
+                    self.voice_channel[guild_id] = None
                 return
-            self.now_playing = self.search_YT(self.music_queue[0])
-            self.is_playing = True
-            self.now_playing_info_msg = await text_channel.send(embed=(self.now_playing_info()))
-            self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
+            self.now_playing[guild_id] = self.search_YT(self.music_queue[guild_id][0])
+            self.is_playing[guild_id] = True
+            self.now_playing_info_msg[guild_id] = await text_channel.send(embed=(self.now_playing_info()))
+            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
             
             
-    def now_playing_info(self):
+    def now_playing_info(self, guild_id):
         emb = discord.Embed(title='Now playing: 🎵', color=discord.Color.blue())
-        emb.set_thumbnail(url=self.now_playing['thumbnail'])
-        emb.add_field(name='Title:', value=f"[{self.now_playing['title']}]({self.now_playing['url']})", inline=False)
-        emb.add_field(name='Channel:', value=f"[{self.now_playing['channel_name']}]({self.now_playing['channel_url']})")
-        emb.add_field(name='Duration:', value=datetime.timedelta(seconds = self.now_playing['duration']))
+        emb.set_thumbnail(url=self.now_playing[guild_id]['thumbnail'])
+        emb.add_field(name='Title:', value=f"[{self.now_playing[guild_id]['title']}]({self.now_playing[guild_id]['url']})", inline=False)
+        emb.add_field(name='Channel:', value=f"[{self.now_playing[guild_id]['channel_name']}]({self.now_playing[guild_id]['channel_url']})")
+        emb.add_field(name='Duration:', value=datetime.timedelta(seconds = self.now_playing[guild_id]['duration']))
         return emb
         
-    async def play_music(self,text_channel, voice_channel):
-        if len(self.music_queue) > 0 :
-            self.now_playing = self.search_YT(self.music_queue[0])
-            if self.now_playing == False:
+    def init(self, guild_id):
+        self.guild_list.append(guild_id)
+        self.is_playing[guild_id] = False
+        self.is_paused[guild_id] = False
+        self.is_loop[guild_id] = False
+        self.skiped[guild_id] = False
+        self.now_playing[guild_id] = None
+        self.now_playing_info_msg[guild_id] = None 
+        
+        self.music_queue[guild_id] = []
+        
+        self.voice_channel[guild_id] = None
+        
+    async def play_music(self,text_channel, voice_channel, guild_id):
+        if len(self.music_queue[guild_id]) > 0 :
+            self.now_playing[guild_id] = self.search_YT(self.music_queue[guild_id][0])
+            if self.now_playing[guild_id] == False:
                 await text_channel.send("Can not play this track skipping to next track.")
-                self.music_queue.pop(0)
-                await self.play_music(text_channel, voice_channel)
+                self.music_queue[guild_id].pop(0)
+                await self.play_music(text_channel, voice_channel, guild_id)
                 return
-            elif self.voice_channel == None or not self.voice_channel.is_connected():
-                self.voice_channel = await voice_channel.connect()
-                if self.voice_channel == None:
+            elif self.voice_channel[guild_id] == None or not self.voice_channel[guild_id].is_connected() or self.voice_channel[guild_id] != voice_channel:
+                self.voice_channel[guild_id] = await voice_channel.connect()
+                if self.voice_channel[guild_id] == None:
                     await text_channel.send("Could not connect to voice channel.")      
-            await self.voice_channel.move_to(voice_channel)
-            self.now_playing_info_msg = await text_channel.send(embed=self.now_playing_info())
-            self.is_playing = True
-            self.voice_channel.play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
+                
+                
+            await self.voice_channel[guild_id].move_to(voice_channel)
+            self.now_playing_info_msg[guild_id] = await text_channel.send(embed=self.now_playing_info(guild_id))
+            self.is_playing[guild_id] = True
+            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing[guild_id]['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel, guild_id))
         else :
-            self.is_playing = False
+            self.is_playing[guild_id] = False
     
     @app_commands.command(name='play', description='Play the selected song from Youtube.')
     async def play(self,interaction:discord.Interaction, search: str = None):
         text_channel = interaction.channel           
-        voice_channel = interaction.user.voice.channel                   
+        voice_channel = interaction.user.voice.channel
+        if interaction.guild_id not in self.guild_list:
+            self.init(interaction.guild_id)
         try:
-            if self.is_paused and search == None:
-                self.is_paused = False
-                self.is_playing = True
-                self.voice_channel.resume()
+            if self.is_paused[interaction.guild_id] and search == None:
+                self.is_paused[interaction.guild_id] = False
+                self.is_playing[interaction.guild_id] = True
+                self.voice_channel[interaction.guild_id].resume()
                 await interaction.response.send_message("Music resumed. ▶️")
             elif search != None:
                 if 'playlist' in search:
                     playlist = Playlist(search)
                     for url in playlist:
-                        self.music_queue.append(url)
+                        self.music_queue[interaction.guild_id].append(url)
                     await interaction.response.send_message(f"{len(playlist)} songs added to the queue.")
                 elif 'RD' and 'list' in search:
                     search = search.split('&list')
-                    self.music_queue.append(search[0])
+                    self.music_queue[interaction.guild_id].append(search[0])
                     await interaction.response.send_message("Song added to the queue.")
                 else:
-                    self.music_queue.append(search)
+                    self.music_queue[interaction.guild_id].append(search)
                     await interaction.response.send_message('Song added to the queue.')    
-            if self.is_playing and not self.voice_channel.is_connected():
-                self.is_playing = False
-                self.is_paused = False
-            if not self.is_playing :
-                await self.play_music(text_channel, voice_channel)
+            if self.is_playing[interaction.guild_id] and not self.voice_channel[interaction.guild_id].is_connected():
+                self.is_playing[interaction.guild_id] = False
+                self.is_paused[interaction.guild_id] = False
+            if not self.is_playing[interaction.guild_id] :
+                await self.play_music(text_channel, voice_channel, interaction.guild_id)
         except:
             await interaction.response.send_message("You are not in a voice channel!")
     
     @app_commands.command(name='pause', description='Pauses the currently song beign played.')
     async def pause(self,interaction:discord.Interaction):
-        if self.is_playing:
-            self.is_playing = False
-            self.is_paused = True
-            self.voice_channel.pause()
+        if interaction.guild_id not in self.guild_list:
+            self.init(interaction.guild_id)
+        if self.is_playing[interaction.guild_id]:
+            self.is_playing[interaction.guild_id] = False
+            self.is_paused[interaction.guild_id] = True
+            self.voice_channel[interaction.guild_id].pause()
             await interaction.response.send_message("Music paused. ⏸️")
-        elif self.is_paused:
-            self.voice_channel.resume()
+        elif self.is_paused[interaction.guild_id]:
+            self.voice_channel[interaction.guild_id].resume()
             await interaction.response.send_message("Music resumed. ▶️")
             
     @app_commands.command(name='resume', description='Resume playing the current song.')
     async def resume(self,interaction:discord.Interaction):
-        if self.is_paused:
-            self.is_playing = True
-            self.is_paused = False
-            self.voice_channel.resume()
+        if interaction.guild_id not in self.guild_list:
+            self.init(interaction.guild_id)        
+        if self.is_paused[interaction.guild_id]:
+            self.is_playing[interaction.guild_id] = True
+            self.is_paused[interaction.guild_id] = False
+            self.voice_channel[interaction.guild_id].resume()
             await interaction.response.send_message("Music resumed. ▶️")
     
     @app_commands.command(name='skip', description='Skips the currently playing song.')
     async def skip(self,interaction: discord.Interaction):
-        self.skiped = True
-        if self.voice_channel != None and self.voice_channel:
-            self.voice_channel.stop()
-            self.music_queue.pop(0)
+        if interaction.guild_id not in self.guild_list:
+            self.init(interaction.guild_id)        
+        self.skiped[interaction.guild_id] = True
+        if self.voice_channel[interaction.guild_id] != None and self.voice_channel[interaction.guild_id]:
+            self.voice_channel[interaction.guild_id].stop()
+            self.music_queue[interaction.guild_id].pop(0)
             await interaction.response.send_message("Music skiped. ⏭️")
             text_channel = interaction.channel
             voice_channel = interaction.user.voice.channel
@@ -195,56 +219,56 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
     @app_commands.command(name='queue', description='Displays all the songs currently in the queue.')
     async def queue(self,interaction: discord.Interaction, page: int=1):
         await interaction.response.defer()
-        if not len(self.music_queue):
+        if not len(self.music_queue[interaction.guild_id]):
             await interaction.followup.send("No music in the queue.") 
         else:
-            emb = discord.Embed(title=f'Music queue Total : {len(self.music_queue)}', color=discord.Color.blue())
-            for i in range((page-1)*10, min((page)*10, len(self.music_queue))):
+            emb = discord.Embed(title=f'Music queue Total : {len(self.music_queue[interaction.guild_id])}', color=discord.Color.blue())
+            for i in range((page-1)*10, min((page)*10, len(self.music_queue[interaction.guild_id]))):
                 try:
-                    song = self.search_YT(self.music_queue[i])['title']
-                    emb.add_field(name=f"({i+1}) {song}" + (' - Looping' if self.is_loop and i != page*10 else ''), value='', inline = False)
+                    song = self.search_YT(self.music_queue[interaction.guild_id][i])
+                    emb.add_field(name=f"({i+1}) " + (' - Looping' if self.is_loop and i != page*10 else ''), value=f"[{song['title']}]({song['url']})", inline = False)
                 except:
                     emb.add_field(name=f"({i+1}) Invalid" + (' - Looping' if self.is_loop and i != page*10 else ''), value='', inline = False)
-            emb.add_field(name=f'Pages: {page}/{len(self.music_queue)//10 + 1}', value='', inline=False)
+            emb.add_field(name=f'Pages: {page}/{len(self.music_queue[interaction.guild_id])//10 + 1}', value='', inline=False)
             await interaction.followup.send(embed=emb)
     
     @app_commands.command(name='shuffle',description='Shuffle the musics queue.')    
     async def shuffle(self, interaction:discord.Interaction):
-        temp = self.music_queue[1:]
+        temp = self.music_queue[interaction.guild_id][1:]
         random.shuffle(temp)
-        self.music_queue[1:] = temp
+        self.music_queue[interaction.guild_id][1:] = temp
         await interaction.response.send_message("Music queue shuffled.")
     
     @app_commands.command(name='loop',description='Loop the current playing music.')
     async def loop(self,interaction:discord.Interaction):
-        if self.is_loop == False:
-            self.is_loop = True
+        if self.is_loop[interaction.guild_id] == False:
+            self.is_loop[interaction.guild_id] = True
             await interaction.response.send_message("Looping.")
         else :
-            self.is_loop = False
+            self.is_loop[interaction.guild_id] = False
             await interaction.response.send_message("Unlooped.")
 
     @app_commands.command(name='clear',description='Clear the songs in the queue.')
     async def clear(self,interaction:discord.Interaction):
-        self.music_queue = self.music_queue[:1]
+        self.music_queue[interaction.guild_id] = self.music_queue[interaction.guild_id][:1]
         await interaction.response.send_message("Music queue cleared.")
                
     @app_commands.command(name='remove',description='Remove certain music in the queue.')
     async def remove(self, interaction:discord.Interaction, index: int):
         try:
-            self.music_queue.pop(index-1)
+            self.music_queue[interaction.guild_id].pop(index-1)
             await interaction.response.send_message("Music removed.")
         except:
             await interaction.response.send_message("Index out of range.")
     
     @app_commands.command(name='leave',description="Leave voice channel")
     async def leave(self,interaction:discord.Interaction):
-        await self.voice_channel.disconnect()
+        await self.voice_channel[interaction.guild_id].disconnect()
         await interaction.response.send_message("Bye Bye~. 👋")
-        self.is_playing = False
-        self.is_paused = False
-        self.music_queue.clear()
-        self.voice_channel = None
+        self.is_playing[interaction.guild_id]= False
+        self.is_paused[interaction.guild_id] = False
+        self.music_queue[interaction.guild_id].clear()
+        self.voice_channel[interaction.guild_id] = None
   
     @app_commands.command(name="download_music", description='Download song or playlisg from youtube.\n `Notice:` A playlist that\'s too long is not recommend.')
     async def download(self, interaction:discord.Interaction, url: str):
