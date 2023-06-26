@@ -91,7 +91,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                 self.now_playing_info_msg[guild_id] = None
                 await asyncio.sleep(90)
                 
-                if self.is_playing == False:
+                if self.is_playing[guild_id] == False:
                     emb = discord.Embed(title='Idle for too long!', color=discord.Color.red())
                     await self.voice_channel[guild_id].disconnect()
                     await text_channel.send(embed = emb)
