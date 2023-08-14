@@ -20,7 +20,7 @@ class Bot(commands.Bot):
     async def on_ready(self):
         await bot.change_presence(activity=discord.Game(name="戀上換裝娃娃"))
         prefx = (Back.BLACK + Fore.GREEN + time.strftime("%H:%M:%S", time.localtime()) + Back.RESET + Fore.WHITE + Style.BRIGHT)
-        print(prefx + ' 目前登入身份：' + Fore.BLUE + self.user.name)
+        print(prefx + ' 目前登入身份：' + Fore.BLUE + self.user.name + Fore.RESET)
         sycned = await bot.tree.sync()
         print(prefx + " Slash CMDS Sycned " + Fore.YELLOW + str(len(sycned)) + " Commands" + Fore.RESET)
 
