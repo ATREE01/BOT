@@ -4,6 +4,7 @@ from discord import app_commands
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 import time
@@ -22,7 +23,7 @@ class Download_Img(commands.Cog, description="Use to download photo from website
         await interaction.response.defer()
         chrome_options = Options()
         chrome_options.add_argument("--headless")
-        driver = webdriver.Chrome('chromedriver',options = chrome_options)
+        driver = webdriver.Chrome(service=Service('chromedriver.exe'),options = chrome_options)
         try:
             if "instagram" in url:
                 driver.get(url)
