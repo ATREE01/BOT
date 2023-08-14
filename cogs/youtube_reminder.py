@@ -50,7 +50,6 @@ class Youtube_Reminder(commands.Cog, description="Commands for youtube remineder
     @app_commands.describe(channel_url = "e.g. \"https://www.youtube.com/@*channel_name*\"")
     async def add_channel(self, interaction: discord.Interaction, channel_url: str ):
         guild_id = interaction.guild_id
-        print(self.guild_text_list)
         if str(guild_id) not in self.guild_text_list:
             await interaction.response.send_message("Haven't set the channel for remind. Must use \"set_channel\" first.")
         else:
