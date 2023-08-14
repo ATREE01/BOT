@@ -80,8 +80,8 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         if self.skiped[guild_id] == True:
             self.skiped[guild_id] = False
             return
-        if self.is_loop == True:
-            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
+        if self.is_loop[guild_id] == True:
+            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing[guild_id]['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel, guild_id))
         else:
             if self.now_playing_info_msg[guild_id] != None:
                 await self.now_playing_info_msg[guild_id].delete()
@@ -89,6 +89,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
             if len(self.music_queue[guild_id]) == 0:
                 self.is_playing[guild_id] = False
                 self.now_playing_info_msg[guild_id] = None
+                await self.now_playing_info_msg[guild_id].delete()
                 await asyncio.sleep(90)
                 
                 if self.is_playing[guild_id] == False:
@@ -99,10 +100,16 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
                     self.is_paused[guild_id] = False
                     self.voice_channel[guild_id] = None
                 return
-            self.now_playing[guild_id] = self.search_YT(self.music_queue[guild_id][0])
+            self.now_playing[guild_id] = self.search_YT(self.music_queue[guild_id])
+            while self.now_playing[guild_id] == False and len(self.music_queue[guild_id]) > 0:
+                await text_channel.send(f"Can not play this track -{self.music_queue[guild_id][0]}- skipping to next track.")
+                self.music_queue[guild_id].pop(0)
+                if len(self.music_queue[guild_id] == 0):
+                    return
+                
             self.is_playing[guild_id] = True
-            self.now_playing_info_msg[guild_id] = await text_channel.send(embed=(self.now_playing_info()))
-            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel))
+            self.now_playing_info_msg[guild_id] = await text_channel.send(embed=(self.now_playing_info(guild_id)))
+            self.voice_channel[guild_id].play(discord.FFmpegPCMAudio(self.now_playing[guild_id]['music_url'],**self.FFMEPEG_OPTIONS),after=lambda e:self.my_after(text_channel, guild_id))
             
             
     def now_playing_info(self, guild_id):
@@ -130,7 +137,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
         if len(self.music_queue[guild_id]) > 0 :
             self.now_playing[guild_id] = self.search_YT(self.music_queue[guild_id][0])
             if self.now_playing[guild_id] == False:
-                await text_channel.send("Can not play this track skipping to next track.")
+                await text_channel.send(f"Can not play this track -{self.music_queue[guild_id][0]}- skipping to next track.")
                 self.music_queue[guild_id].pop(0)
                 await self.play_music(text_channel, voice_channel, guild_id)
                 return
@@ -148,7 +155,7 @@ class Music(commands.Cog, description='Commands for playing music from youtube.'
             self.is_playing[guild_id] = False
     
     @app_commands.command(name='play', description='Play the selected song from Youtube.')
-    async def play(self,interaction:discord.Interaction, search: str = None):
+    async def play(self,interaction: discord.Interaction, search: str = None):
         text_channel = interaction.channel           
         voice_channel = interaction.user.voice.channel
         if interaction.guild_id not in self.guild_list:
