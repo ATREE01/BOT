@@ -4,3 +4,7 @@ chromedriver.exe
 cogs/key.json
 Run.bat
 Pixiv_imgs/
+cogs/record/guild_text_list.json
+cogs/record/last_stream.json
+cogs/record/last_video.json
+cogs/record/remind_list.json
