@@ -18,7 +18,7 @@ class Bot(commands.Bot):
                 await bot.load_extension(f"cogs.{filename[:-3]}")
 
     async def on_ready(self):
-        await bot.change_presence(activity=discord.Game(name="戀上換裝娃娃"))
+        await bot.change_presence(activity=discord.Game(name="/help for more inforemation"))
         prefx = (Back.BLACK + Fore.GREEN + time.strftime("%H:%M:%S", time.localtime()) + Back.RESET + Fore.WHITE + Style.BRIGHT)
         print(prefx + ' 目前登入身份：' + Fore.BLUE + self.user.name + Fore.RESET)
         sycned = await bot.tree.sync()
