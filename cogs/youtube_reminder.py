@@ -100,49 +100,54 @@ class Youtube_Reminder(commands.Cog, description="Commands for youtube remineder
         # remind for stream
         url_stream = self.BASEURL + f'{channel[1:]}/streams'
         driver.get(url_stream)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.8)
+        
         channel_name = driver.find_element(By.XPATH, "//*[@id='text']").text
         streams = driver.find_elements(By.XPATH, "//*[@id='contents']/ytd-rich-item-renderer")
-        lastest_stream = None
-        for i in range(len(streams) - 1, -1, -1):
-            if streams[i].text[0: 4] == '即將直播':
-                lastest_stream = streams[i]
-                break
-        if lastest_stream != None:
-            isSuccess = True
-            try:
-                stream_time = lastest_stream.find_element(By.XPATH, "//*[@id='metadata-line']/span[2]").text
-                title = lastest_stream.find_element(By.XPATH, "//*[@id='video-title']").text
-                link = lastest_stream.find_element(By.XPATH, "//*[@id='video-title-link']").get_attribute('href')
-            except Exception as e:
-                isSuccess = False
-            
-            if isSuccess and link != self.last_stream[channel]:
+        remind_stream = None
+        
+        now_date = datetime.date.today().strftime("%Y/%#m/%#d")
+        now_time = [datetime.datetime.now().hour, datetime.datetime.now().minute]
+        for stream in streams:
+            if stream.text[0: 4] == '即將直播':
+                stream_time = stream.find_elements(By.CLASS_NAME, "inline-metadata-item.style-scope.ytd-video-meta-block")[-1].text
                 live_date = stream_time.split('：')[1].split(' ')[0]
-                now_date = datetime.date.today().strftime("%Y/%#m/%#d")
                 # print(live_date, now_date)
                 if live_date == now_date:
-                    now_time = [datetime.datetime.now().hour, datetime.datetime.now().minute]
-                    live_time = [0, 0]
+                    live_time = [0, int(stream_time[-2: ])]
+                    # print(now_time, live_time)
                     if stream_time[-5].isdigit():
                         live_time[0] = int(stream_time[-5 : -3])
                     else:
                         live_time[0] = int(stream_time[-4 : -3])
-                    live_time[1] = int(stream_time[-2: ])
                     if (live_time[0] * 60 + live_time[1]) -  (now_time[0] * 60 + now_time[1]) <= self.remind_before_min :
-                        self.last_stream[channel] = link
-                        for guild_id in self.remind_list[channel]:
-                            text_channel = self.bot.get_channel(int(self.guild_text_list[str(guild_id)]))
-                            try:
-                                await text_channel.send(f"**New steam at {live_time[0]} : {live_time[1]:0>2}**\n{channel_name} has a new stream: \n {title}  !\n{link} ")
-                            except:
-                                pass
-                        with open("cogs/record/last_stream.json", "w") as f:
-                            json.dump(self.last_stream, f, indent=4)
+                        remind_stream = stream
+                        # print(remind_stream.text)
+            else:
+                break
+        if remind_stream != None:
+            isSuccess = True
+            try:
+                title = remind_stream.find_element(By.CLASS_NAME, "yt-simple-endpoint.focus-on-expand.style-scope.ytd-rich-grid-media").text
+                link = remind_stream.find_element(By.CLASS_NAME, "yt-simple-endpoint.inline-block.style-scope.ytd-thumbnail").get_attribute('href')
+            except Exception as e:
+                print("ERROR!")
+                isSuccess = False
+            if isSuccess and link != self.last_stream[channel]:
+                self.last_stream[channel] = link
+                for guild_id in self.remind_list[channel]:
+                    text_channel = self.bot.get_channel(int(self.guild_text_list[str(guild_id)]))
+                    try:
+                        await text_channel.send(f"**New steam at {live_time[0]} : {live_time[1]:0>2}**\n{channel_name} has a new stream: \n {title}  !\n{link} ")
+                    except Exception as e:
+                        print("ERROR!")
+                with open("cogs/record/last_stream.json", "w") as f:
+                    json.dump(self.last_stream, f, indent=4)
+                    
         #remind for video          
         url_video = self.BASEURL + f'{channel[1:]}/videos'
         driver.get(url_video)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.8)
         lastest_video =  driver.find_element(By.XPATH, "//*[@id=\"contents\"]/ytd-rich-item-renderer[1]")
         link = lastest_video.find_element(By.CLASS_NAME, "yt-simple-endpoint.inline-block.style-scope.ytd-thumbnail").get_attribute("href")
         if  link != self.last_video[channel] and self.last_video[channel] != None:
